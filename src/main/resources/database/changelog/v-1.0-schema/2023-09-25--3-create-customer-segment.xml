@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
+
+    <changeSet id="create-table-customer_segmentation" author="cnathali" >
+        <sql>
+            CREATE TABLE IF NOT EXISTS customer_segmentation(
+                Segment_ID serial primary key,
+                Average_Check varchar not null,
+                Frequency_Purchases varchar not null,
+                Churn_Probability varchar not null
+            );
+        </sql>
+    </changeSet>
+
+    <changeSet id="import-table-customer_segmentation" author="cnathali">
+        <loadData tableName="customer_segmentation" file="database/tsv/customer_segmentation.tsv" separator="\t"/>
+    </changeSet>
+
+    <changeSet id="create-fnc_customer_segment-func" author="cnathali" >
+        <sql>
+            CREATE OR REPLACE FUNCTION fnc_customer_segment(average_ varchar, frequency_ varchar, churn_ varchar) RETURNS int
+            AS '
+            BEGIN
+                RETURN (
+                    SELECT Segment_ID
+                    FROM customer_segmentation
+                    WHERE Average_Check = average_
+                      AND Frequency_Purchases = frequency_
+                      AND Churn_Probability = churn_
+                );
+            END;
+            ' LANGUAGE plpgsql;
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
+
+    <changeSet id="import-table-personal_data-full" author="cnathali">
+        <loadData tableName="personal_data" file="database/tsv/personal_data.tsv" separator="\t"/>
+    </changeSet>
+
+    <changeSet id="import-table-sku-groups-full" author="cnathali">
+        <loadData tableName="sku_groups" file="database/tsv/groups_sku.tsv" separator="\t"/>
+    </changeSet>
+
+    <changeSet id="import-table-cards-full" author="cnathali">
+        <loadData tableName="cards" file="database/tsv/cards.tsv" separator="\t"/>
+    </changeSet>
+
+    <changeSet id="import-table-sku-full" author="cnathali">
+        <loadData tableName="sku" file="database/tsv/sku.tsv" separator="\t"/>
+    </changeSet>
+
+    <changeSet id="import-table-stores-full" author="cnathali">
+        <loadData tableName="stores" file="database/tsv/stores.tsv" separator="\t"/>
+    </changeSet>
+
+    <changeSet id="import-table-transactions-full" author="cnathali" >
+        <sql>
+            SET datestyle TO DMY;
+            CALL import_table('transactions.tsv', 'transactions');
+        </sql>
+    </changeSet>
+
+    <changeSet id="import-table-checks-full" author="cnathali">
+        <loadData tableName="checks" file="database/tsv/checks.tsv" separator="\t"/>
+    </changeSet>
+
+    <changeSet id="init-sequences-full" author="cnathali" >
+        <sql>
+            SELECT setval('personal_data_customer_id_seq', count(*)) FROM personal_data;
+            SELECT setval('sku_groups_group_id_seq', count(*)) FROM sku_groups;
+            SELECT setval('cards_customer_card_id_seq', count(*)) FROM cards;
+            SELECT setval('sku_sku_id_seq', count(*)) FROM sku;
+            SELECT setval('stores_store_id_seq', count(*)) FROM stores;
+            SELECT setval('transactions_transaction_id_seq', count(*)) FROM transactions;
+            SELECT setval('checks_checks_id_seq', count(*)) FROM checks;
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>

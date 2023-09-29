@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Suggestions</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+<header th:insert="~{header/header :: header}"></header>
+<main>
+
+    <div class="container w-50 p-2">
+        <div class="row gx-5">
+            <div class="col">
+                <div class="col">
+                    <img src="/images/data-3.jpg" class="img-fluid">
+                </div>
+            </div>
+            <div class="col">
+                <p class="text-start fs-1">Представления</p>
+                <div class="list-group">
+                    <a href="/view/1" class="list-group-item border-0 list-group-item-action">Клиенты</a>
+                    <a href="/view/2" class="list-group-item border-0 list-group-item-action">История покупок</a>
+                    <a href="/view/3" class="list-group-item border-0 list-group-item-action">Периоды</a>
+                    <a href="#groupsModal" class="list-group-item border-0 list-group-item-action" data-bs-toggle="modal">Группы</a>
+                </div>
+                <!-- Модальное окно -->
+                <div class="modal fade" id="groupsModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h1 class="modal-title fs-5" id="exampleModalLabel">Выбор метода расчета маржи:</h1>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form action="/viewGroups" method="post">
+                                    <div class="mb-3">
+                                        <label for="margin_method" class="form-label">1 - все данные, 2 - за период, 3 - по количеству транзакций </label>
+                                        <select th:name="method" class="form-select" id="margin_method" required="required">
+                                            <option>1</option>
+                                            <option>2</option>
+                                            <option>3</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="number_days" class="form-label">Количество дней:</label>
+                                        <input th:name="days" class="form-control" id="number_days" type = "number" value="700" min="1" required="required"/>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="number_transactions" class="form-label">Количество транзакций:</label>
+                                        <input th:name="transactions" class="form-control" id="number_transactions" type = "number" value="100" min="1" required="required"/>
+                                    </div>
+                                    <div class="mb-3">
+                                        <input class="btn btn btn-primary btn-sm" type="submit" required="required"/>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="container w-75 p-2">
+        <p class="text-start fs-1">Предложения</p>
+    </div>
+    <div class="container w-75 p-2">
+        <div class="row row-cols-1 row-cols-md-3 g-4">
+            <div class="col">
+                <div class="card border-secondary mb-2 card h-100">
+                    <div class="card-body">
+                        <h4 class="card-title">Средний чек</h4>
+                        <p class="card-text">Формирование персональных предложений, ориентированных на рост среднего чека.</p>
+                        <form action="/func" method="post">
+                            <input type="hidden" name="id" value=5>
+                            <div class="mb-2">
+                                <label for="method" class="form-label">Метод расчета (1 - за период, 2 - за количество):</label>
+                                <select th:name="arg" class="form-select" id="method" required="required">
+                                    <option>1</option>
+                                    <option>2</option>
+                                </select>
+                            </div>
+                            <div class="mb-2">
+                                <label for="begin_date1" class="form-label">Начальная дата периода:</label>
+                                <input th:name="arg" class="form-control" id="begin_date1" type = "date" value="2020-01-01" min="2019-12-22" max="2023-12-31"
+                                       required="required"/>
+                            </div>
+                            <div class="mb-2">
+                                <label for="end_date1" class="form-label">Конечная дата периода:</label>
+                                <input th:name="arg" class="form-control" id="end_date1" type = "date" value="2022-12-31" min="2019-12-22" max="2023-12-31"
+                                       required="required"/>
+                            </div>
+                            <div class="mb-2">
+                                <label for="num_transactions" class="form-label">Количество транзакций:</label>
+                                <input th:name="arg" class="form-control" id="num_transactions" type = "number" value="100" min="1" required="required"/>
+                            </div>
+                            <div class="mb-2">
+                                <label for="coefficient" class="form-label">Коэффициент увеличения среднего чека:</label>
+                                <input th:name="arg" class="form-control" id="coefficient" type = "number" value="1.3" min="0" step = "0.1"
+                                       required="required"/>
+                            </div>
+                            <div class="mb-2">
+                                <label for="churn_rate1" class="form-label">Максимальный индекс оттока:</label>
+                                <input th:name="arg" class="form-control" id="churn_rate1" type = "number" value="200.0" min="0" step = "0.1"
+                                       required="required"/>
+                            </div>
+                            <div class="mb-2">
+                                <label for="discount_share" class="form-label">Максимальная доля транзакций со скидкой:</label>
+                                <input th:name="arg" class="form-control" id="discount_share" type = "number" value="1.0" min="0" step = "0.1"
+                                       required="required"/>
+                            </div>
+                            <div class="mb-2">
+                                <label for="margin_share1" class="form-label">Допустимая доля маржи (в процентах):</label>
+                                <input th:name="arg" class="form-control" id="margin_share1"  type = "number" value="20.0" min="0" step = "0.1"
+                                       required="required"/>
+                            </div>
+                            <div class="mb-2">
+                                <input class="btn btn btn-primary btn-sm" type="submit" value="Сформировать"/>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="card border-secondary mb-3 card h-100">
+                    <div class="card-body">
+                        <h4 class="card-title">Частота визитов</h4>
+                        <p class="card-text">Формирование персональных предложений, ориентированных на рост частоты визитов.</p>
+                        <form action="/func" method="post">
+                            <input type="hidden" name="id" value=6>
+                            <div class="mb-2">
+                                <label for="begin_date2" class="form-label">Начальная дата периода:</label>
+                                <input th:name="arg" class="form-control" id="begin_date2" type = "date" value="2021-01-01" min="2019-12-22" max="2023-12-31"
+                                       required="required"/>
+                            </div>
+                            <div class="mb-2">
+                                <label for="end_date2" class="form-label">Конечная дата периода:</label>
+                                <input th:name="arg" class="form-control" id="end_date2" type = "date" value="2022-12-01" min="2019-12-22" max="2023-12-31"
+                                       required="required"/>
+                            </div>
+                            <div class="mb-2">
+                                <label for="transactions_add" class="form-label">Добавляемое число транзакций:</label>
+                                <input th:name="arg" class="form-control" id="transactions_add" type = "number" value="5" min="1" required="required"/>
+                            </div>
+                            <div class="mb-2">
+                                <label for="churn_rate2" class="form-label">Максимальный индекс оттока:</label>
+                                <input th:name="arg" class="form-control" id="churn_rate2" type = "number" value="100.0" min="0" step = "0.1"
+                                       required="required"/>
+                            </div>
+                            <div class="mb-2">
+                                <label for="discount_share2" class="form-label">Максимальная доля транзакций со скидкой:</label>
+                                <input th:name="arg" class="form-control" id="discount_share2" type = "number" value="2.0" min="0" step = "0.1"
+                                       required="required"/>
+                            </div>
+                            <div class="mb-2">
+                                <label for="margin_share2" class="form-label">Допустимая доля маржи (в процентах):</label>
+                                <input th:name="arg" class="form-control" id="margin_share2"  type = "number" value="20.0" min="0" step = "0.1"
+                                       required="required"/>
+                            </div>
+                            <input class="btn btn btn-primary btn-sm" type="submit" value="Сформировать"/>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="card border-secondary mb-2 card h-100">
+                    <div class="card-body">
+                        <h4 class="card-title">Кросс-продажи</h4>
+                        <p class="card-text">Формирование персональных предложений, ориентированных на кросс-продажи.</p>
+                        <form action="/func" method="post">
+                            <input type="hidden" name="id" value=7>
+                            <div class="mb-2">
+                                <label for="number_groups" class="form-label">Количество групп:</label>
+                                <input th:name="arg" class="form-control" id="number_groups" type="number" value="4" min="1" required="required"/>
+                            </div>
+                            <div class="mb-2">
+                                <label for="churn_rate3" class="form-label">Максимальный индекс оттока:</label>
+                                <input th:name="arg" class="form-control" id="churn_rate3" type = "number" value="100.0" min="0" step = "0.1"
+                                       required="required"/>
+                            </div>
+                            <div class="mb-2">
+                                <label for="max_stability_index" class="form-label">Максимальный индекс стабильности потребления:</label>
+                                <input th:name="arg" class="form-control" id="max_stability_index" type = "number" value="1.2" min="0" step = "0.1"
+                                       required="required"/>
+                            </div>
+                            <div class="mb-2">
+                                <label for="max_sku_share" class="form-label">Максимальная доля SKU:</label>
+                                <input th:name="arg" class="form-control" id="max_sku_share" type = "number" value="1.0" min="0" step = "0.1"
+                                       required="required"/>
+                            </div>
+                            <div class="mb-2">
+                                <label for="margin_share3" class="form-label">Допустимая доля маржи (в процентах):</label>
+                                <input th:name="arg" class="form-control" id="margin_share3"  type = "number" value="40.0" min="0" step = "0.1"
+                                       required="required"/>
+                            </div>
+                            <div class="mb-2">
+                                <input class="btn btn btn-primary btn-sm" type="submit" value="Сформировать"/>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <br>
+
+</main>
+<footer th:insert="~{footer/footer :: footer}"></footer>
+</body>
+</html>

@@ -1,0 +1,92 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SkuGroups</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+<header th:insert="~{header/header :: header}"></header>
+<main>
+    <div class="container w-50 p-2">
+        <p class="text-start fs-1">SKU группы</p>
+    </div>
+    <div class="container w-50 p-2">
+        <div style="max-height: 800px; overflow-x: auto;">
+            <table class="table">
+                <thead>
+                <tr>
+                    <th scope="col">ID</th>
+                    <th scope="col">Group_Name</th>
+                    <th scope="col" th:if="${#authorization.expression('hasRole(''ROLE_ADMIN'')')}"></th>
+                    <th scope="col" th:if="${#authorization.expression('hasRole(''ROLE_ADMIN'')')}"></th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="it : ${skugroups}">
+                    <td th:text="${it.id}"></td>
+                    <td th:text="${it.groupName}"></td>
+                    <td th:if="${#authorization.expression('hasRole(''ROLE_ADMIN'')')}">
+                        <a class="btn btn-outline-secondary btn-sm" style="float: right" th:href="'/skugroups/updates/' + ${it.id}">Обновить</a>
+                    </td>
+                    <td th:if="${#authorization.expression('hasRole(''ROLE_ADMIN'')')}">
+                        <form action="/skugroups/delete" method="post">
+                            <input type="hidden" name="id" th:value="${it.id}">
+                            <input class="btn btn-outline-danger btn-sm" style="float: right" type="submit" value="Удалить"/>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="container p-1" th:if="${#authorization.expression('hasRole(''ROLE_ADMIN'')')}">
+            <p class="text-start fs-3">Добавить группу товаров</p>
+        </div>
+        <div class="container p-1" th:if="${#authorization.expression('hasRole(''ROLE_ADMIN'')')}">
+            <div class="row">
+                <div class="col align-self-start">
+                    <form action="/skugroups/add" method="POST">
+                        <div class="mb-3">
+                            <label for="group_name" class="form-label"> Название </label>
+                            <input class="form-control" type="text" id="group_name" name="groupName" required="required"/>
+                        </div>
+                        <input class="btn btn-primary btn-sm" type="submit" value="Добавить"/>
+                    </form>
+                </div>
+                <div class="col align-self-center">
+                </div>
+            </div>
+        </div>
+        <hr>
+        <div class="container p-1">
+            <div class="row">
+                <div class="col align-self-start">
+                    <p class="text-start fs-3">Выгрузить CSV</p>
+                    <form enctype="multipart/form-data" action="/skugroups/unload">
+                        <div>
+                            <input class="btn btn-primary btn-sm" type="submit" value="Выгрузить"/>
+                        </div>
+                    </form>
+                </div>
+                <div class="col align-self-end" th:if="${#authorization.expression('hasRole(''ROLE_ADMIN'')')}">
+                    <p class="text-start fs-3">Загрузить CSV</p>
+                    <form enctype="multipart/form-data" action="/skugroups/upload" method="POST">
+                        <div>
+                            <input class="btn btn-light btn-sm" required = "required" name="file" type="file" accept=".csv">
+                            <input class="btn btn btn-primary btn-sm" type="submit" value="Загрузить"/>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+<footer th:insert="~{footer/footer :: footer}"></footer>
+</body>
+</html>

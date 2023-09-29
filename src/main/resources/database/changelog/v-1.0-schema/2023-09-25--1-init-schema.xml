@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+<!--    <changeSet id="2023-09-25-create-database" author="cnathali">-->
+<!--        <sql endDelimiter="\nGO"-->
+<!--             splitStatements="true"-->
+<!--             stripComments="true">-->
+<!--                CREATE DATABASE retail_analytics;-->
+<!--        </sql>-->
+<!--    </changeSet>-->
+
+    <changeSet id="2023-09-25-create-personal_data" author="cnathali">
+        <sql endDelimiter="\nGO"
+             splitStatements="true"
+             stripComments="true">
+                CREATE TABLE IF NOT EXISTS personal_data (
+                    Customer_ID serial primary key,
+                    Customer_Name varchar not null,
+                    Customer_Surname varchar not null,
+                    Customer_Primary_Email varchar not null,
+                    Customer_Primary_Phone varchar not null
+                );
+        </sql>
+    </changeSet>
+
+    <changeSet id="2023-09-25-create-cards" author="cnathali">
+        <sql endDelimiter="\nGO"
+             splitStatements="true"
+             stripComments="true">
+                CREATE TABLE IF NOT EXISTS cards (
+                    Customer_Card_ID serial primary key,
+                    Customer_ID int not null,
+                    constraint fk_cards_customer_id foreign key (Customer_ID) references personal_data (Customer_ID) on delete cascade
+                );
+        </sql>
+    </changeSet>
+
+    <changeSet id="2023-09-25-create-sku_groups" author="cnathali">
+        <sql endDelimiter="\nGO"
+             splitStatements="true"
+             stripComments="true">
+                CREATE TABLE IF NOT EXISTS sku_groups (
+                    Group_ID serial primary key,
+                    Group_Name varchar not null
+                );
+        </sql>
+    </changeSet>
+
+    <changeSet id="2023-09-25-create-sku" author="cnathali">
+        <sql endDelimiter="\nGO"
+             splitStatements="true"
+             stripComments="true">
+                CREATE TABLE IF NOT EXISTS sku (
+                    SKU_ID serial primary key,
+                    SKU_Name varchar not null,
+                    Group_ID int not null,
+                    constraint fk_sku_group_id foreign key (Group_ID) references sku_groups (Group_ID) on delete cascade
+                );
+        </sql>
+    </changeSet>
+
+    <changeSet id="2023-09-25-create-stores" author="cnathali">
+        <sql endDelimiter="\nGO"
+             splitStatements="true"
+             stripComments="true">
+                CREATE TABLE IF NOT EXISTS stores (
+                    Store_ID serial primary key,
+                    Transaction_Store_ID int,
+                    SKU_ID int not null,
+                    SKU_Purchase_Price decimal not null,
+                    SKU_Retail_Price decimal not null,
+                    constraint fk_stores_sku_id foreign key (SKU_ID) references sku (SKU_ID) on delete cascade
+                );
+        </sql>
+    </changeSet>
+
+    <changeSet id="2023-09-25-create-transactions" author="cnathali">
+        <sql endDelimiter="\nGO"
+             splitStatements="true"
+             stripComments="true">
+                CREATE TABLE IF NOT EXISTS transactions (
+                    Transaction_ID serial primary key,
+                    Customer_Card_ID int not null,
+                    Transaction_Summ decimal not null,
+                    Transaction_DateTime timestamp not null,
+                    Transaction_Store_ID serial not null,
+                    constraint fk_transactions_customer_card_id foreign key (Customer_Card_ID) references cards (Customer_Card_ID) on delete cascade
+                );
+        </sql>
+    </changeSet>
+
+    <changeSet id="2023-09-25-create-checks" author="cnathali">
+        <sql endDelimiter="\nGO"
+             splitStatements="true"
+             stripComments="true">
+            CREATE TABLE IF NOT EXISTS checks(
+                Checks_ID serial primary key,
+                Transaction_ID int not null,
+                SKU_ID int not null,
+                SKU_Amount decimal not null,
+                SKU_Summ decimal not null,
+                SKU_Summ_Paid decimal not null,
+                SKU_Discount decimal not null,
+                constraint fk_checks_transaction_id foreign key (Transaction_ID) references transactions (Transaction_ID) on delete cascade,
+                constraint fk_checks_sku_id foreign key (SKU_ID) references sku (SKU_ID) on delete cascade
+            );
+        </sql>
+    </changeSet>
+
+    <changeSet id="create-import-table-func" author="cnathali">
+        <sql endDelimiter="\nGO"
+             splitStatements="true"
+             stripComments="true">
+            CREATE OR REPLACE PROCEDURE import_table(file_name varchar,
+                                             table_name varchar,
+                                             delimiter varchar(1) default E'\t')  -- tab ('\t')
+        LANGUAGE plpgsql
+    AS $BODY$
+            DECLARE
+            path varchar = (SELECT setting
+                        FROM pg_settings
+                        WHERE name = 'data_directory') || '/' || file_name;
+        count_record int;
+            BEGIN
+        RAISE NOTICE 'Import from file: %', path;
+            EXECUTE 'COPY ' || table_name || ' FROM ' || quote_literal(path) ||
+                    ' WITH DELIMITER ' || quote_literal(delimiter);
+            EXECUTE 'SELECT count(*) FROM ' || quote_ident(table_name) INTO count_record;
+            RAISE NOTICE 'Table name: %', table_name;
+        RAISE NOTICE '% of records are imported successfully', count_record;
+            END
+            $BODY$;
+        </sql>
+    </changeSet>
+</databaseChangeLog>

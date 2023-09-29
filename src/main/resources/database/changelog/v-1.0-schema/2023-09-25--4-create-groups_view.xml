@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
+
+    <changeSet id="create-table-margin_type" author="cnathali" >
+        <sql>
+            CREATE TABLE IF NOT EXISTS margin_type (
+                type_ varchar not null default 'default',
+                value_ int not null default 0,
+                CHECK (type_ IN ('default', 'days', 'transactions'))
+            );
+        </sql>
+    </changeSet>
+
+    <changeSet id="create-set_margin_type-procedure" author="cnathali" >
+        <sql>
+            CREATE OR REPLACE PROCEDURE set_margin_type(type varchar, value int default 0)
+                LANGUAGE plpgsql
+            AS '
+            BEGIN
+                TRUNCATE TABLE margin_type CASCADE;
+                IF type = ''default'' THEN
+                    INSERT INTO margin_type(type_, value_) VALUES (type, 0);
+                ELSE
+                    INSERT INTO margin_type(type_, value_) VALUES (type, value);
+                END IF;
+            END';
+        </sql>
+    </changeSet>
+
+    <changeSet id="create-fnc_max_day-func" author="cnathali" >
+        <sql>
+            CREATE OR REPLACE FUNCTION fnc_max_day() RETURNS numeric
+            AS '
+            BEGIN
+                RETURN (
+                    SELECT extract(epoch from current_date - min(transaction_datetime)) / 60 / 60 / 24
+                    FROM transactions
+                );
+            END;
+            ' LANGUAGE plpgsql;
+        </sql>
+    </changeSet>
+
+    <changeSet id="call-set_margin_type" author="cnathali" >
+        <sql>
+            CALL set_margin_type('default');
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>

@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
+
+    <changeSet id="create-fnc_personal_offers_average_check" author="cnathali" >
+        <sql>
+            CREATE OR REPLACE FUNCTION fnc_personal_offers_average_check(
+                    method int,
+                    first_date date,
+                    last_date date,
+                    num_transactions int,
+                    coefficient numeric,
+                    churn_rate numeric,
+                    discount_share numeric,
+                    margin_share numeric
+                ) RETURNS TABLE (
+                    customer_id_ int,
+                    required_check_measure_ numeric,
+                    group_name_ varchar,
+                    offer_discount_depth_ numeric
+                )
+            AS '
+                        DECLARE
+                        cursor_ CURSOR FOR (
+                        WITH
+                        transactions_data AS (
+                            SELECT customer_id, transaction_datetime, transaction_summ,
+                                ROW_NUMBER() OVER(PARTITION BY customer_id ORDER BY transaction_datetime DESC) AS num
+                            FROM transactions
+                            INNER JOIN cards USING (customer_card_id)
+                            ORDER BY cards.customer_id
+                        ),
+                        filtered_transactions_data AS (
+                            SELECT  DISTINCT customer_id,
+                                avg(transaction_summ) OVER (PARTITION BY customer_id) AS customer_average_check,
+                                coefficient * avg(transaction_summ) OVER (PARTITION BY customer_id) AS target_customer_average_check
+                            FROM transactions_data
+                            WHERE
+                                (method = 1 AND date_trunc(''day'', transaction_datetime) BETWEEN first_date AND last_date)
+                                OR
+                                (method = 2 AND  num &lt;= num_transactions)
+                            ORDER BY customer_id
+                        )
+                    SELECT customer_id, group_id, group_name,
+                           target_customer_average_check,
+                           group_affinity_index,
+                           group_margin,
+                           group_margin * margin_share * 0.01 AS margin,
+                           group_minimum_discount,
+                           ceil((group_minimum_discount * 100) * 0.2) * 5 AS group_minimum_discount_proc,
+                           CASE
+                               WHEN group_churn_rate &lt;= churn_rate THEN true
+                                ELSE false
+                    END AS churn_rate_suit,
+                            CASE
+                                WHEN group_discount_share &lt;= discount_share THEN true
+                                ELSE false
+                    END AS discount_share_suit
+
+                        FROM filtered_transactions_data
+                        INNER JOIN groups USING (customer_id)
+                        INNER JOIN sku_groups USING (group_id)
+                        ORDER BY customer_id, group_affinity_index DESC
+                    );
+                    current_id int = 0;
+                    BEGIN
+                    FOR rec IN cursor_ LOOP
+                        IF rec.churn_rate_suit AND
+                           rec.discount_share_suit AND
+                           rec.group_minimum_discount_proc &lt;= rec.margin AND
+                           rec.group_minimum_discount_proc > 0 AND
+                           rec.customer_id &lt;> current_id
+                    THEN
+                            --RAISE NOTICE ''customer_id: %, groups: %, affinity: %, churn_rate_suit %, discount_share_suit %'',
+                            --rec.customer_id, rec.group_id, rec.group_affinity_index, rec.churn_rate_suit, rec.discount_share_suit;
+                            customer_id_ = rec.customer_id;
+                            required_check_measure_ = rec.target_customer_average_check;
+                            group_name_ = rec.group_name;
+                            offer_discount_depth_ = rec.group_minimum_discount_proc;
+                            RETURN NEXT;
+                            current_id = rec.customer_id;
+                    END IF;
+                    END LOOP;
+                    END
+        ' LANGUAGE plpgsql;
+        </sql>
+    </changeSet>
+
+    <changeSet id="create-fnc_personal_offers_visits_frequency" author="cnathali" >
+        <sql>
+            CREATE OR REPLACE FUNCTION fnc_personal_offers_visits_frequency(
+                    first_date date,
+                    last_date date,
+                    added_number_transactions int,
+                    max_churn_rate numeric,
+                    max_discount_share  numeric,
+                    margin_share  numeric   -- in percent
+                ) RETURNS TABLE (
+                    Customer_ID_ int,
+                    Start_Date_ timestamp,
+                    End_Date_ timestamp,
+                    Required_Transactions_Count_ numeric,
+                    Group_Name_ varchar,
+                    Offer_Discount_Depth_ numeric
+                )
+            AS '
+                        BEGIN
+                        RETURN QUERY (
+                            WITH
+                        transactions_data AS (
+                            SELECT customer_id, group_id,
+                                group_affinity_index,
+                                group_churn_rate,
+                                group_discount_share
+                                , round((last_date - first_date) / customer_frequency) + added_number_transactions
+                                        AS Required_Transactions_Count
+                                , group_margin
+                                , group_margin * margin_share * 0.01 AS margin
+                                , group_minimum_discount
+                                , ceil((group_minimum_discount * 100) * 0.2) * 5 AS group_minimum_discount_proc
+                            FROM transactions
+                            INNER JOIN cards USING (customer_card_id)
+                            INNER JOIN customers USING (customer_id)
+                            INNER JOIN groups USING (customer_id)
+                            WHERE date_trunc(''day'', transaction_datetime) BETWEEN first_date AND last_date AND
+                                  group_churn_rate &lt;= max_churn_rate AND       --
+                                  group_discount_share &lt;= max_discount_share
+                            ORDER BY customer_id, group_affinity_index DESC, group_id
+                        ),
+                        filtered_transactions_data AS (
+                            SELECT DISTINCT ON (transactions_data.customer_id)
+                                *
+                            FROM transactions_data
+                            INNER JOIN sku_groups USING (group_id)
+                            WHERE
+                                group_minimum_discount_proc &lt;= margin AND
+                                group_minimum_discount_proc > 0
+                        )
+                    SELECT
+                        customer_id AS Customer_ID,
+                        first_date::timestamp AS Start_Date,
+                            last_date::timestamp AS End_Date,
+                            required_transactions_count AS Required_Transactions_Count,
+                        group_name AS Group_Name,
+                        group_minimum_discount_proc AS Offer_Discount_Depth
+                    FROM filtered_transactions_data
+                        );
+                END
+            ' LANGUAGE plpgsql;
+        </sql>
+    </changeSet>
+
+    <changeSet id="create-fnc_personal_offers_cross_sales" author="cnathali" >
+        <sql>
+            CREATE OR REPLACE FUNCTION fnc_personal_offers_cross_sales(
+                    number_groups int,
+                    max_churn_rate numeric,
+                    max_stability_index numeric,
+                    max_sku_share numeric,
+                    margin_share  numeric   -- in percent
+                ) RETURNS TABLE (
+                    Customer_ID_ int,
+                    SKU_Name_ varchar,
+                    Offer_Discount_Depth_ numeric
+                )
+            AS '
+                        BEGIN
+                        RETURN QUERY (
+                            WITH
+                        stores_data AS (
+                            SELECT
+                                transaction_store_id AS store_id,
+                                group_id,
+                                sku_id,
+                                sku_name,
+                                sku_retail_price,
+                                sku_purchase_price,
+                                sku_retail_price - sku_purchase_price AS max_margin_sku
+                            FROM stores
+                                JOIN sku USING (sku_id)
+                            ORDER BY transaction_store_id, group_id
+                        )
+                        --TABLE store_data
+                        ,
+                                filtered_stores_data AS (
+                            SELECT DISTINCT ON (store_id, group_id)
+                                *
+                            FROM stores_data
+                            ORDER BY store_id, group_id, max_margin_sku DESC
+                        )
+                            --TABLE filtered_store_data
+                            ,
+                                checks_data AS (
+                            SELECT sku_id, group_id,
+                                count(transaction_id)::numeric / by_groups.number_group_transacrions AS sku_share
+                            FROM checks
+                            INNER JOIN sku USING (sku_id)
+                            INNER JOIN (
+                                    SELECT group_id,
+                                        count(DISTINCT transaction_id) AS number_group_transacrions
+                                    FROM checks
+                                    INNER JOIN sku USING (sku_id)
+                                    GROUP BY group_id
+                                    ORDER BY group_id
+                                ) by_groups USING (group_id)
+                            GROUP BY sku_id, group_id, by_groups.number_group_transacrions
+                            ORDER BY sku_id, group_id
+                        )
+                            --TABLE checks_data
+                            ,
+                                group_data AS (
+                            SELECT
+                                ROW_NUMBER() OVER (PARTITION BY (customer_id) ORDER BY group_id) AS group_number,
+                                *
+                            FROM groups
+                            WHERE group_churn_rate &lt;= max_churn_rate
+                                  AND group_stability_index &lt; max_stability_index
+                        )
+                        --TABLE group_data
+                        ,
+                        filtered_group_data AS (
+                            SELECT customer_id,
+                                group_number,
+                                group_data.group_id,
+                                group_stability_index,
+                                group_churn_rate,
+                                customer_primary_store,
+                                checks_data.sku_id,
+                                sku_name,
+                                group_minimum_discount,
+                                ceil((group_minimum_discount * 100) * 0.2) * 5 AS group_minimum_discount_proc,
+                                sku_retail_price,
+                                sku_purchase_price,
+                                max_margin_sku,
+                                max_margin_sku / sku_retail_price * margin_share AS discount,
+                                sku_share
+                            FROM group_data
+                            INNER JOIN customers USING (customer_id)
+                            INNER JOIN filtered_stores_data ON store_id = customer_primary_store AND
+                                                                filtered_stores_data.group_id = group_data.group_id
+                            INNER JOIN checks_data ON checks_data.sku_id = filtered_stores_data.sku_id AND
+                                                                checks_data.group_id = group_data.group_id
+                            WHERE group_number &lt;= number_groups
+                            ORDER BY customer_id, group_number, group_data.group_id
+                        )
+                    SELECT customer_id,
+                           sku_name,
+                           group_minimum_discount_proc
+                    FROM filtered_group_data
+                    WHERE sku_share &lt;= max_sku_share
+                              AND group_minimum_discount_proc &lt;= discount
+                              AND group_minimum_discount_proc > 0
+                    );
+                END
+            ' LANGUAGE plpgsql;
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>

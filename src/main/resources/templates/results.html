@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SQL query</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+<header th:insert="~{header/header :: header}"></header>
+<main>
+    <div class="container p-1">
+        <p class="text-start fs-3">Результат:</p>
+    </div>
+    <div class="container p-1">
+        <div th:unless="${#lists.isEmpty(result)}">
+            <div style="max-height: 800px; overflow-x: auto;">
+                <table class="table">
+                    <thead>
+                    <tr>
+                        <div th:each="it : ${result}">
+                            <th th:text="${it.key}" th:style="${'font-size: large'}"></th>
+                        </div>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <td th:each="it : ${result}">
+                        <table>
+                            <tr th:each="data : ${it.value}">
+                                <td th:text="${data}"></td>
+                            </tr>
+                        </table>
+                    </td>
+                    </tbody>
+                </table>
+            </div>
+            <hr>
+            <div th:unless="${result.isEmpty()}">
+                <form enctype="multipart/form-data" action="/unloadResult" method="POST">
+                    <p class="text-start fs-3">Выгрузить CSV</p>
+                    <div>
+                        <input class="btn btn-primary btn-sm" type="submit" value="Выгрузить"/>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</main>
+<footer th:insert="~{footer/footer :: footer}"></footer>
+</body>
+</html>

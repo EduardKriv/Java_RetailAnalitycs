@@ -1,0 +1,63 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Skus</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+<header th:insert="~{header/header :: header}"></header>
+<main>
+
+    <div class="container p-1">
+        <p class="text-start fs-3">Редактировать Магазин</p>
+    </div>
+    <div class="container p-1">
+        <div class="row">
+            <div class="col align-self-start">
+                <form action="/stores/add" th:object="${stores}" method="POST">
+                    <div class="mb-3">
+                        <label for="id" class="form-label"> ID </label>
+                        <input class="form-control" type="number" id="id" name="id" th:value="${stores.id} "required="required" readonly/>
+                    </div>
+                    <div class="mb-3">
+                        <label for="transaction_store_id" class="form-label"> Номер Магазина </label>
+                        <select class="form-select"  id="transaction_store_id" name="transactionStore" required="required">
+                            <option th:each="it : ${transactionStore}" th:value="${it}" th:text="${it}"
+                                    th:selected="${stores.transactionStore == it}"/>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="sku_id" class="form-label"> Товар </label>
+                        <select class="form-select"  id="sku_id" name="sku" required="required">
+                            <option th:each="it : ${skus}" th:value="${it.id}" th:text="${it.id} + ' ' + ${it.skuName}"
+                                    th:selected="${stores.sku == it}"/>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="sku_purchase_price" class="form-label"> Закупочная цена </label>
+                        <input class="form-control" type="number" step="0.01" id="sku_purchase_price" name="skuPurchasePrice"
+                               th:value="${stores.skuPurchasePrice}" required="required"/>
+                    </div>
+                    <div class="mb-3">
+                        <label for="sku_retail_price" class="form-label"> Розничная цена </label>
+                        <input class="form-control" type="number" step="0.01" id="sku_retail_price" name="skuRetailPrice"
+                               th:value="${stores.skuRetailPrice}" required="required"/>
+                    </div>
+                    <input class="btn btn-primary btn-sm" type="submit" value="Добавить"/>
+                </form>
+            </div>
+            <div class="col align-self-center">
+            </div>
+        </div>
+    </div>
+</main>
+<footer th:insert="~{footer/footer :: footer}"></footer>
+</body>
+</html>
